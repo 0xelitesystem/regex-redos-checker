@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regex ReDoS Checker</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --surface: #fafafa;
+  --surface-2: #f0f0f0;
+  --border: #d4d4d4;
+  --text: #1a1a1a;
+  --text-dim: #666666;
+  --crimson: #b91c1c;
+  --crimson-dim: #991b1b;
+  --accent: #b91c1c;
+  --crit: #b91c1c;
+  --high: #c2410c;
+  --med: #a16207;
+  --low: #047857;
+  --info: #0369a1;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --serif: "Times New Roman", Times, serif;
+}
+[data-theme="dark"] {
+  --bg: #0e0e0e;
+  --surface: #1a1a1a;
+  --surface-2: #242424;
+  --border: #383838;
+  --text: #e8e8e8;
+  --text-dim: #999999;
+  --crimson: #ef4444;
+  --crimson-dim: #dc2626;
+  --accent: #ef4444;
+  --crit: #ef4444;
+  --high: #f97316;
+  --med: #eab308;
+  --low: #10b981;
+  --info: #38bdf8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; padding: 24px; }
+header { display: flex; justify-content: space-between; align-items: flex-start; max-width: 1300px; margin: 0 auto 24px; gap: 16px; padding-bottom: 16px; border-bottom: 2px solid var(--crimson); }
+.brand-line { font-family: var(--mono); font-size: 10px; color: var(--crimson); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 4px; font-weight: 700; }
+h1 { font-family: var(--serif); font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.subtitle { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+.report-meta { font-family: var(--mono); font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+.theme-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 2px; cursor: pointer; font-size: 12px; font-family: var(--mono); }
+.theme-btn:hover { border-color: var(--crimson); color: var(--crimson); }
+main { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; padding: 16px; }
+h2 { font-family: var(--serif); font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text); margin-bottom: 4px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+h2 .num { color: var(--crimson); font-family: var(--mono); margin-right: 8px; }
+.panel-meta { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.input-wrap { position: relative; }
+.input-prefix { position: absolute; left: 8px; top: 8px; font-family: var(--mono); font-size: 14px; color: var(--crimson); font-weight: 700; pointer-events: none; }
+input[type=text] { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 2px; padding: 10px 10px 10px 22px; font-family: var(--mono); font-size: 13px; line-height: 1.5; }
+input[type=text]:focus { outline: none; border-color: var(--crimson); }
+.flags-row { display: flex; gap: 12px; align-items: center; margin-top: 10px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; }
+.flag-label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; user-select: none; color: var(--text-dim); }
+.flag-label input { margin: 0; cursor: pointer; }
+.flag-label input:checked + span { color: var(--crimson); font-weight: 700; }
+textarea { width: 100%; min-height: 100px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 2px; padding: 8px; font-family: var(--mono); font-size: 12px; line-height: 1.5; resize: vertical; }
+textarea:focus { outline: none; border-color: var(--crimson); }
+.actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+button { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 7px 12px; border-radius: 2px; cursor: pointer; font-size: 12px; font-family: var(--mono); }
+button:hover { border-color: var(--crimson); color: var(--crimson); }
+button.primary { background: var(--crimson); color: #ffffff; border-color: var(--crimson); font-weight: 700; }
+button.primary:hover { background: var(--crimson-dim); border-color: var(--crimson-dim); color: #ffffff; }
+[data-theme="dark"] button.primary:hover { background: var(--crimson-dim); color: #ffffff; }
+.results { min-height: 380px; max-height: 700px; overflow-y: auto; }
+.results-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; font-style: italic; }
+.severity-stamp { display: inline-block; padding: 4px 12px; border: 2px solid; border-radius: 2px; font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+.severity-stamp.crit { color: var(--crit); border-color: var(--crit); background: rgba(185, 28, 28, 0.05); }
+.severity-stamp.high { color: var(--high); border-color: var(--high); background: rgba(194, 65, 12, 0.05); }
+.severity-stamp.med { color: var(--med); border-color: var(--med); background: rgba(161, 98, 7, 0.05); }
+.severity-stamp.low { color: var(--low); border-color: var(--low); background: rgba(4, 120, 87, 0.05); }
+.severity-stamp.info { color: var(--info); border-color: var(--info); background: rgba(3, 105, 161, 0.05); }
+.tag { font-size: 10px; font-family: var(--mono); padding: 2px 8px; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+.tag.crit { background: rgba(185, 28, 28, 0.12); color: var(--crit); }
+.tag.high { background: rgba(194, 65, 12, 0.12); color: var(--high); }
+.tag.med { background: rgba(161, 98, 7, 0.12); color: var(--med); }
+.tag.low { background: rgba(4, 120, 87, 0.12); color: var(--low); }
+.tag.info { background: rgba(3, 105, 161, 0.12); color: var(--info); }
+.finding { border-left: 3px solid var(--border); padding: 12px; margin-bottom: 10px; background: var(--bg); border-radius: 0 2px 2px 0; }
+.finding.crit { border-left-color: var(--crit); }
+.finding.high { border-left-color: var(--high); }
+.finding.med { border-left-color: var(--med); }
+.finding.low { border-left-color: var(--low); }
+.finding.info { border-left-color: var(--info); }
+.finding-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.finding-title { font-weight: 700; font-size: 13px; }
+.finding-pattern { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 4px 8px; border-radius: 2px; margin: 6px 0; word-break: break-all; border-left: 2px solid var(--crimson); }
+.finding-detail { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 6px 0; }
+.finding-fix { font-size: 12px; color: var(--text); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.finding-fix strong { color: var(--crimson); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 4px; }
+.evil-block { background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--crit); padding: 10px; margin-top: 10px; border-radius: 0 2px 2px 0; }
+.evil-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--crit); font-weight: 700; margin-bottom: 6px; }
+.evil-input { font-family: var(--mono); font-size: 12px; word-break: break-all; padding: 4px 8px; background: var(--bg); border-radius: 2px; }
+.copy-btn { float: right; padding: 2px 6px; font-size: 10px; }
+.bench { margin-top: 8px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+.bench-row { display: flex; justify-content: space-between; padding: 2px 0; }
+.bench-row.danger { color: var(--crit); font-weight: 700; }
+footer { max-width: 1300px; margin: 32px auto 0; text-align: center; font-size: 11px; color: var(--text-dim); padding-top: 16px; border-top: 1px solid var(--border); }
+.error-box { background: rgba(185, 28, 28, 0.05); border: 1px solid var(--crit); color: var(--crit); padding: 10px 12px; border-radius: 2px; font-size: 12px; font-family: var(--mono); margin-bottom: 12px; }
+.report-section { margin-bottom: 16px; }
+.callout { padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--crimson); border-radius: 0 2px 2px 0; font-size: 12px; color: var(--text-dim); margin-bottom: 12px; }
+.callout strong { color: var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="brand-line">// Penetration Test Finding</div>
+    <h1>Regex ReDoS Checker</h1>
+    <div class="subtitle">Catastrophic backtracking analysis &mdash; nested quantifiers, alternation overlap, optional repetition.</div>
+    <div class="report-meta">Static analysis &middot; evil-input synthesis &middot; runtime benchmark &middot; browser-only</div>
+  </div>
+  <button class="theme-btn" id="theme-btn">dark</button>
+</header>
+<main>
+  <section class="panel">
+    <h2><span class="num">01</span>Subject</h2>
+    <div class="panel-meta">Pattern under analysis</div>
+    <div class="input-wrap">
+      <span class="input-prefix">/</span>
+      <input type="text" id="input" placeholder='paste regex body, no slashes (e.g. ^(a+)+$)' autocomplete="off" spellcheck="false">
+    </div>
+    <div class="flags-row">
+      <span style="color: var(--text-dim);">Flags:</span>
+      <label class="flag-label"><input type="checkbox" id="flag-i"><span>i</span></label>
+      <label class="flag-label"><input type="checkbox" id="flag-g"><span>g</span></label>
+      <label class="flag-label"><input type="checkbox" id="flag-m"><span>m</span></label>
+      <label class="flag-label"><input type="checkbox" id="flag-s"><span>s</span></label>
+      <label class="flag-label"><input type="checkbox" id="flag-u"><span>u</span></label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="analyze">Analyze</button>
+      <button id="sample-1">Nested quantifier</button>
+      <button id="sample-2">Alt overlap</button>
+      <button id="sample-3">Optional rep</button>
+      <button id="sample-4">Email validator</button>
+      <button id="sample-5">Safe pattern</button>
+      <button id="clear">Clear</button>
+    </div>
+    <div class="report-section" style="margin-top: 16px;">
+      <h2 style="font-size: 12px;"><span class="num">02</span>Test Input (optional)</h2>
+      <div class="panel-meta">Run pattern against custom input with timeout protection</div>
+      <textarea id="test-input" placeholder="optional: provide a string to match against"></textarea>
+    </div>
+  </section>
+  <section class="panel">
+    <h2><span class="num">03</span>Findings</h2>
+    <div class="panel-meta">Vulnerability assessment &middot; severity per detector</div>
+    <div id="results" class="results">
+      <div class="results-empty">Provide a regex and click Analyze.</div>
+    </div>
+  </section>
+</main>
+<footer>
+  Static + dynamic analysis. Pattern parsing is heuristic; complex constructs may not be fully analyzed. Always validate with engine-specific testing.
+  <br>This tool runs entirely in the browser. No regex or input data is transmitted anywhere.
+</footer>
+<script>
+(function() {
+  const $ = id => document.getElementById(id);
+  const themeBtn = $('theme-btn');
+  themeBtn.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const t = cur === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'light' ? 'dark' : 'light';
+  });
+
+  const SAMPLES = {
+    1: '^(a+)+$',
+    2: '^(a|ab)+$',
+    3: '^(a?){10}a{10}$',
+    4: '^([a-zA-Z0-9_.+-]+)+@([a-zA-Z0-9-]+)+\\.([a-zA-Z0-9-.]+)+$',
+    5: '^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$'
+  };
+  Object.keys(SAMPLES).forEach(k => {
+    $('sample-' + k).addEventListener('click', () => $('input').value = SAMPLES[k]);
+  });
+  $('clear').addEventListener('click', () => {
+    $('input').value = '';
+    $('test-input').value = '';
+    $('results').innerHTML = '<div class="results-empty">Provide a regex and click Analyze.</div>';
+  });
+  $('analyze').addEventListener('click', analyze);
+
+  function getFlags() {
+    let f = '';
+    ['i','g','m','s','u'].forEach(k => { if ($('flag-' + k).checked) f += k; });
+    return f;
+  }
+
+  // Detector 1: Nested quantifiers — (X+)+ , (X*)* , (X+)*, (X*)+, (X{n,})+
+  // Look for closing paren followed by quantifier where the group itself has a quantified atom.
+  function detectNestedQuantifiers(pattern) {
+    const findings = [];
+    // Scan for groups followed by + * or {n,}
+    const groups = findGroups(pattern);
+    groups.forEach(g => {
+      if (!g.outerQuantifier) return;
+      // Check if the group body contains any quantifier on its content that COULD match the same chars
+      const body = g.body;
+      const innerQuants = findInnerQuantifiers(body);
+      if (innerQuants.length > 0) {
+        // Determine if it's a true nested quantifier hazard
+        // Specifically dangerous: outer quant is + or * or unbounded {n,}, inner is + * {n,}
+        const outerUnbounded = /^[+*]$|^\{\d*,?\}$/.test(g.outerQuantifier);
+        innerQuants.forEach(iq => {
+          const innerUnbounded = /^[+*]$|^\{\d*,\}$/.test(iq.quant) || /^\{\d+,\d+\}$/.test(iq.quant);
+          if (outerUnbounded && (iq.quant === '+' || iq.quant === '*' || /\{\d*,\d*\}/.test(iq.quant))) {
+            findings.push({
+              detector: 'Nested quantifier',
+              sev: 'crit',
+              title: 'Catastrophic nested quantifier — exponential backtracking',
+              pattern: '(' + body + ')' + g.outerQuantifier + '  ←  inner ' + iq.atom + iq.quant,
+              detail: 'The group is repeated ' + describe(g.outerQuantifier) + ' and contains an atom (' + iq.atom + ') repeated ' + describe(iq.quant) + '. On a non-matching input, the regex engine tries every way to split the input between the two quantifiers, giving O(2^n) backtracking. Classic ReDoS.',
+              fix: 'Refactor so the same character cannot be matched two ways. Options: (1) atomic group (?>X+) (PCRE/Java/.NET — not JavaScript). (2) Possessive quantifier X++ (same support). (3) Use a single quantifier — (a+)+ → a+. (4) Use a regex engine without backtracking (RE2, Hyperscan, Rust regex). (5) For JS, switch to a non-regex parser, or use a state machine.',
+              evil: synthEvil(pattern, 'nested')
+            });
+          }
+        });
+      }
+    });
+    return findings;
+  }
+
+  // Detector 2: Alternation overlap — (a|ab)+, (a|aa)+, (foo|foobar)+
+  function detectAlternationOverlap(pattern) {
+    const findings = [];
+    const groups = findGroups(pattern);
+    groups.forEach(g => {
+      if (!g.outerQuantifier) return;
+      // Split on top-level pipes
+      const alts = splitTopLevelAlternation(g.body);
+      if (alts.length < 2) return;
+      // Check pairs for prefix overlap
+      for (let i = 0; i < alts.length; i++) {
+        for (let j = 0; j < alts.length; j++) {
+          if (i === j) continue;
+          const a = stripAnchors(alts[i]);
+          const b = stripAnchors(alts[j]);
+          if (!a || !b) continue;
+          // overlap if a is a prefix of b, or they share a common literal prefix and an alt path exists
+          if (a !== b && (b.startsWith(a) || isLiteralPrefixOverlap(a, b))) {
+            findings.push({
+              detector: 'Alternation overlap',
+              sev: 'crit',
+              title: 'Alternation with overlapping branches in repeated group',
+              pattern: '(' + alts.join('|') + ')' + g.outerQuantifier,
+              detail: 'Branch "' + a + '" is a prefix of (or overlaps with) branch "' + b + '". Inside a +/* repetition, the engine has multiple valid ways to split a matching string between branches. On a near-miss input, this explodes combinatorially.',
+              fix: 'Make alternatives mutually exclusive: anchor branches with lookahead, factor out the common prefix, or order them with the longer alternative first plus an atomic group. Example: (a|ab)+ → (ab|a)+ helps in PCRE-style first-match-wins engines but not in NFA — better is a(b?) which expresses the same language unambiguously.',
+              evil: synthEvil(pattern, 'altoverlap', a)
+            });
+            return; // one finding per group
+          }
+        }
+      }
+    });
+    return findings;
+  }
+
+  // Detector 3: Optional repetition — (a?)*, (a?)+, (X?)+ where X can match same char as another optional
+  function detectOptionalRepetition(pattern) {
+    const findings = [];
+    const groups = findGroups(pattern);
+    groups.forEach(g => {
+      if (!g.outerQuantifier) return;
+      const outerUnbounded = /^[+*]$|^\{\d*,\}$/.test(g.outerQuantifier);
+      if (!outerUnbounded) return;
+      // Inside body: every atom is optional (everything ends with ? or *) — so the group can match empty string AND non-empty
+      const body = g.body;
+      const innerQuants = findInnerQuantifiers(body);
+      const allOptional = innerQuants.length > 0 && innerQuants.every(iq => iq.quant === '?' || iq.quant === '*');
+      if (allOptional) {
+        findings.push({
+          detector: 'Optional repetition',
+          sev: 'high',
+          title: 'Repeated group where all atoms are optional',
+          pattern: '(' + body + ')' + g.outerQuantifier,
+          detail: 'Every atom in the group is optional (? or *), so the group can match the empty string. Repeating an empty-matching group is undefined behavior in some engines; in others it forces engine-specific anti-loop logic that masks performance pathology. With multiple optional atoms, backtracking choices explode.',
+          fix: 'If the language permits empty matches, drop the outer quantifier — (X?)* is the same language as X*. If you mean "one or more X separated by optional Y", restructure: X(YX)* not (XY?)+.',
+          evil: synthEvil(pattern, 'optional')
+        });
+      }
+    });
+    return findings;
+  }
+
+  // Detector 4: Quantifier on character class with overlap to surrounding pattern
+  // e.g. ^[a-z]+x — fine. ^([a-z]+|[a-zA-Z]+)+ — class overlap.
+  function detectClassOverlap(pattern) {
+    const findings = [];
+    const groups = findGroups(pattern);
+    groups.forEach(g => {
+      if (!g.outerQuantifier) return;
+      const alts = splitTopLevelAlternation(g.body);
+      if (alts.length < 2) return;
+      for (let i = 0; i < alts.length; i++) {
+        for (let j = i + 1; j < alts.length; j++) {
+          const ca = extractClass(alts[i]);
+          const cb = extractClass(alts[j]);
+          if (ca && cb && classesOverlap(ca, cb)) {
+            findings.push({
+              detector: 'Character class overlap',
+              sev: 'high',
+              title: 'Overlapping character classes in repeated alternation',
+              pattern: '(' + alts[i] + '|' + alts[j] + ')' + g.outerQuantifier,
+              detail: 'Class [' + ca + '] and [' + cb + '] share characters. In a repeated alternation, an input character can be matched by either branch — the engine explores both paths.',
+              fix: 'Merge the classes: ([abc]|[bcd])+ → [abcd]+. If branches need different following patterns, factor those out.',
+              evil: synthEvil(pattern, 'classoverlap')
+            });
+            return;
+          }
+        }
+      }
+    });
+    return findings;
+  }
+
+  // Detector 5: .* / .+ followed by a finite construct (anchor-free) — common in log parsers
+  function detectGreedyDot(pattern) {
+    const findings = [];
+    if (/\.\*[^?]/.test(pattern) && !pattern.startsWith('^') && !/\$$/.test(pattern)) {
+      findings.push({
+        detector: 'Unanchored greedy dot',
+        sev: 'low',
+        title: 'Unanchored .* / .+ — greedy with backtracking',
+        pattern: pattern,
+        detail: 'Greedy .* with no anchor will scan and backtrack on long inputs. Not catastrophic alone, but combines badly with other detectors.',
+        fix: 'Use lazy .*? where intent is "as little as possible", or anchor with ^ / $. For "everything up to character X", prefer [^X]* which has no backtracking.',
+        evil: null
+      });
+    }
+    return findings;
+  }
+
+  // Helpers
+  function findGroups(pattern) {
+    const groups = [];
+    let i = 0;
+    while (i < pattern.length) {
+      if (pattern[i] === '\\') { i += 2; continue; }
+      if (pattern[i] === '[') {
+        // skip class
+        i++;
+        while (i < pattern.length && pattern[i] !== ']') {
+          if (pattern[i] === '\\') i += 2; else i++;
+        }
+        i++;
+        continue;
+      }
+      if (pattern[i] === '(') {
+        const start = i;
+        let depth = 1;
+        let j = i + 1;
+        // Skip group flags like (?:, (?=, (?!, (?<=, (?<!
+        let bodyStart = j;
+        if (pattern[j] === '?') {
+          // non-capturing or assertion
+          if (pattern[j+1] === ':' || pattern[j+1] === '=' || pattern[j+1] === '!') bodyStart = j + 2;
+          else if (pattern[j+1] === '<') bodyStart = j + 4;
+        }
+        j = bodyStart;
+        while (j < pattern.length && depth > 0) {
+          if (pattern[j] === '\\') { j += 2; continue; }
+          if (pattern[j] === '[') {
+            j++;
+            while (j < pattern.length && pattern[j] !== ']') {
+              if (pattern[j] === '\\') j += 2; else j++;
+            }
+            j++; continue;
+          }
+          if (pattern[j] === '(') depth++;
+          else if (pattern[j] === ')') depth--;
+          if (depth === 0) break;
+          j++;
+        }
+        const body = pattern.slice(bodyStart, j);
+        let q = '';
+        let k = j + 1;
+        if (k < pattern.length) {
+          if (pattern[k] === '+' || pattern[k] === '*' || pattern[k] === '?') {
+            q = pattern[k];
+            if (pattern[k+1] === '?' || pattern[k+1] === '+') q += pattern[k+1];
+          } else if (pattern[k] === '{') {
+            const end = pattern.indexOf('}', k);
+            if (end > -1) q = pattern.slice(k, end + 1);
+          }
+        }
+        groups.push({ start: start, body: body, outerQuantifier: q });
+        i = j + 1 + q.length;
+        continue;
+      }
+      i++;
+    }
+    return groups;
+  }
+
+  function findInnerQuantifiers(body) {
+    const out = [];
+    let i = 0;
+    while (i < body.length) {
+      if (body[i] === '\\') {
+        // an atom like \d, \w
+        const atom = body.slice(i, i + 2);
+        i += 2;
+        if (i < body.length && (body[i] === '+' || body[i] === '*')) {
+          out.push({ atom: atom, quant: body[i], pos: i - 2 });
+          i++;
+        } else if (i < body.length && body[i] === '{') {
+          const end = body.indexOf('}', i);
+          if (end > -1) { out.push({ atom: atom, quant: body.slice(i, end+1), pos: i - 2 }); i = end + 1; }
+        }
+        continue;
+      }
+      if (body[i] === '[') {
+        const start = i;
+        i++;
+        while (i < body.length && body[i] !== ']') {
+          if (body[i] === '\\') i += 2; else i++;
+        }
+        i++;
+        if (i < body.length && (body[i] === '+' || body[i] === '*')) {
+          out.push({ atom: body.slice(start, i), quant: body[i], pos: start });
+          i++;
+        } else if (i < body.length && body[i] === '{') {
+          const end = body.indexOf('}', i);
+          if (end > -1) { out.push({ atom: body.slice(start, i), quant: body.slice(i, end+1), pos: start }); i = end + 1; }
+        }
+        continue;
+      }
+      if (body[i] === '(') {
+        // parenthesized; skip with depth
+        let depth = 1, j = i + 1;
+        while (j < body.length && depth > 0) {
+          if (body[j] === '\\') { j += 2; continue; }
+          if (body[j] === '(') depth++;
+          else if (body[j] === ')') depth--;
+          j++;
+        }
+        if (j < body.length && (body[j] === '+' || body[j] === '*')) {
+          out.push({ atom: body.slice(i, j), quant: body[j], pos: i });
+          j++;
+        } else if (j < body.length && body[j] === '{') {
+          const end = body.indexOf('}', j);
+          if (end > -1) { out.push({ atom: body.slice(i, j), quant: body.slice(j, end+1), pos: i }); j = end + 1; }
+        }
+        i = j;
+        continue;
+      }
+      // single literal char
+      const start = i;
+      i++;
+      if (i < body.length && (body[i] === '+' || body[i] === '*')) {
+        out.push({ atom: body[start], quant: body[i], pos: start });
+        i++;
+      } else if (i < body.length && body[i] === '{') {
+        const end = body.indexOf('}', i);
+        if (end > -1) { out.push({ atom: body[start], quant: body.slice(i, end+1), pos: start }); i = end + 1; }
+      }
+    }
+    return out;
+  }
+
+  function splitTopLevelAlternation(body) {
+    const out = [];
+    let depth = 0, last = 0;
+    for (let i = 0; i < body.length; i++) {
+      if (body[i] === '\\') { i++; continue; }
+      if (body[i] === '[') {
+        i++; while (i < body.length && body[i] !== ']') { if (body[i] === '\\') i++; i++; }
+        continue;
+      }
+      if (body[i] === '(') depth++;
+      else if (body[i] === ')') depth--;
+      else if (body[i] === '|' && depth === 0) { out.push(body.slice(last, i)); last = i + 1; }
+    }
+    out.push(body.slice(last));
+    return out;
+  }
+
+  function stripAnchors(s) { return s.replace(/^\^|\$$/g, ''); }
+  function extractClass(s) {
+    const m = s.match(/^\[([^\]]+)\][+*]?$/);
+    return m ? m[1] : null;
+  }
+  function classesOverlap(a, b) {
+    // Crude: any literal char in both, or both contain same range like a-z
+    for (let i = 0; i < a.length; i++) {
+      if (b.includes(a[i])) return true;
+    }
+    return false;
+  }
+  function isLiteralPrefixOverlap(a, b) {
+    if (a.length === 0 || b.length === 0) return false;
+    // share a literal prefix of at least one char
+    return a[0] === b[0] && /[a-zA-Z0-9]/.test(a[0]);
+  }
+
+  function describe(q) {
+    if (q === '+') return 'one or more times';
+    if (q === '*') return 'zero or more times';
+    if (q === '?') return 'optionally';
+    const m = q.match(/^\{(\d+),?(\d*)\}$/);
+    if (m) {
+      if (m[2]) return 'between ' + m[1] + ' and ' + m[2] + ' times';
+      if (q.includes(',')) return m[1] + ' or more times';
+      return 'exactly ' + m[1] + ' times';
+    }
+    return q;
+  }
+
+  // Synthesize evil input for a pattern
+  function synthEvil(pattern, type, prefix) {
+    // For nested quantifiers like (a+)+ — input is "aaaa...!"
+    // For alt overlap (a|ab)+ — input is "aaaaa...!"
+    // For optional (a?)+ — input is "aaaa...!"
+    // Strategy: find a literal char that the pattern matches, repeat it N times, append a non-matching char
+    const m = pattern.match(/[a-zA-Z0-9]/);
+    const seedChar = prefix && prefix[0] && /[a-zA-Z0-9]/.test(prefix[0]) ? prefix[0] : (m ? m[0] : 'a');
+    return Array.from([10, 20, 30]).map(n => seedChar.repeat(n) + '!');
+  }
+
+  function benchmark(pattern, flags, evil) {
+    const out = [];
+    let regex;
+    try { regex = new RegExp(pattern, flags); } catch (e) { return null; }
+    [10, 20, 25, 30].forEach(n => {
+      const input = (evil[0].match(/^([a-zA-Z0-9])\1*/) || ['a'])[0][0].repeat(n) + '!';
+      const start = performance.now();
+      let timedOut = false;
+      // single-threaded: we can't actually timeout JS regex. Just measure.
+      try {
+        regex.test(input);
+      } catch (e) { /* ignore */ }
+      const took = performance.now() - start;
+      if (took > 5000) { timedOut = true; }
+      out.push({ n: n, ms: took.toFixed(2), danger: took > 50 });
+      if (timedOut) return;
+    });
+    return out;
+  }
+
+  function analyze() {
+    const pattern = $('input').value;
+    if (!pattern) {
+      $('results').innerHTML = '<div class="results-empty">No regex provided.</div>';
+      return;
+    }
+    const flags = getFlags();
+    let regex;
+    try { regex = new RegExp(pattern, flags); } catch (e) {
+      $('results').innerHTML = '<div class="error-box">Invalid regex: ' + escapeHtml(e.message) + '</div>';
+      return;
+    }
+    const findings = [
+      ...detectNestedQuantifiers(pattern),
+      ...detectAlternationOverlap(pattern),
+      ...detectOptionalRepetition(pattern),
+      ...detectClassOverlap(pattern),
+      ...detectGreedyDot(pattern)
+    ];
+    let overall = 'low';
+    findings.forEach(f => {
+      if (f.sev === 'crit') overall = 'crit';
+      else if (f.sev === 'high' && overall !== 'crit') overall = 'high';
+      else if (f.sev === 'med' && !['crit','high'].includes(overall)) overall = 'med';
+    });
+    let html = '';
+    if (findings.length === 0) {
+      html += '<div class="severity-stamp low">PASS &middot; no static issues</div>';
+      html += '<div class="callout"><strong>Static analysis found no known ReDoS patterns.</strong> This is not a guarantee. Engines and inputs vary. For high-stakes patterns, fuzz with regex-fuzzer / DLP-tools or convert to a non-backtracking engine (RE2, Hyperscan, Rust regex).</div>';
+    } else {
+      html += '<div class="severity-stamp ' + overall + '">' + overall.toUpperCase() + ' &middot; ' + findings.length + ' finding' + (findings.length > 1 ? 's' : '') + '</div>';
+      const evilInputs = [];
+      findings.forEach(f => { if (f.evil) f.evil.forEach(e => evilInputs.push(e)); });
+      if (evilInputs.length) {
+        const bench = benchmark(pattern, flags, evilInputs);
+        if (bench) {
+          html += '<div class="callout"><strong>Runtime benchmark (browser-side, single thread):</strong><div class="bench">';
+          bench.forEach(b => {
+            html += '<div class="bench-row' + (b.danger ? ' danger' : '') + '"><span>n=' + b.n + ' chars</span><span>' + b.ms + ' ms</span></div>';
+          });
+          html += '</div></div>';
+        }
+      }
+      findings.forEach(f => {
+        html += '<div class="finding ' + f.sev + '">';
+        html += '<div class="finding-head"><span class="finding-title">' + escapeHtml(f.detector) + ': ' + escapeHtml(f.title) + '</span><span class="tag ' + f.sev + '">' + f.sev + '</span></div>';
+        html += '<div class="finding-pattern">' + escapeHtml(f.pattern) + '</div>';
+        html += '<div class="finding-detail">' + escapeHtml(f.detail) + '</div>';
+        if (f.fix) html += '<div class="finding-fix"><strong>Mitigation</strong>' + escapeHtml(f.fix) + '</div>';
+        if (f.evil) {
+          html += '<div class="evil-block">';
+          html += '<div class="evil-label">Synthesized evil input — increase repetition to amplify</div>';
+          f.evil.forEach(e => {
+            html += '<div class="evil-input">' + escapeHtml(e) + '<button class="copy-btn" data-copy="' + escapeHtml(e) + '">copy</button></div>';
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+      });
+    }
+    // Run user-provided test input if any
+    const testInput = $('test-input').value;
+    if (testInput) {
+      const start = performance.now();
+      let result, error = null;
+      try { result = regex.test(testInput); } catch (e) { error = e.message; }
+      const took = performance.now() - start;
+      html += '<div class="finding info"><div class="finding-head"><span class="finding-title">Test input result</span><span class="tag info">' + took.toFixed(2) + ' ms</span></div>';
+      html += '<div class="finding-detail">' + (error ? 'Error: ' + escapeHtml(error) : 'Match: ' + result) + '</div></div>';
+    }
+    $('results').innerHTML = html;
+    document.querySelectorAll('.copy-btn').forEach(b => {
+      b.addEventListener('click', (e) => {
+        const t = e.target.getAttribute('data-copy');
+        navigator.clipboard.writeText(t).then(() => { e.target.textContent = 'copied'; setTimeout(() => e.target.textContent = 'copy', 1500); });
+      });
+    });
+  }
+
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+})();
+</script>
+</body>
+</html>
