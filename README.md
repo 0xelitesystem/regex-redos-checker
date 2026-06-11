@@ -2,21 +2,23 @@
 
 Browser-based checker for catastrophic backtracking and ReDoS-prone regex patterns. Paste a pattern, get findings on the structures most likely to cause exponential or polynomial blowup, plus an evil-input synthesizer that produces a minimal string to demonstrate the worst case.
 
+**Live demo:** https://0xelitesystem.github.io/regex-redos-checker/
+
 Single HTML file, pentest-report aesthetic (default light theme, dark toggle). No build step, no dependencies, no network calls.
 
 ## What it checks
 
 Five detectors, applied to the parsed pattern:
 
-1. **Nested quantifiers** — `(a+)+`, `(a*)*`, `(a+)*` and variants. The classic exponential case.
-2. **Quantified group with overlapping alternatives** — `(a|a)*`, `(a|ab)*`, `(\w|\d)*`. Polynomial; bad for long inputs.
-3. **Quantified group followed by quantifier on same character class** — `a*a*b`, `\d+\d+`. Polynomial.
-4. **Greedy quantifier with no anchor and a frequently-failing tail** — `.*foo`, `.+\d`. Catastrophic on long non-matching input.
-5. **Lookarounds wrapping quantified groups** — `(?=(a+)+b)`. Often missed because lookaround "doesn't consume" but still backtracks.
+1. **Nested quantifiers**, `(a+)+`, `(a*)*`, `(a+)*` and variants. The classic exponential case.
+2. **Quantified group with overlapping alternatives**, `(a|a)*`, `(a|ab)*`, `(\w|\d)*`. Polynomial; bad for long inputs.
+3. **Quantified group followed by quantifier on same character class**, `a*a*b`, `\d+\d+`. Polynomial.
+4. **Greedy quantifier with no anchor and a frequently-failing tail**, `.*foo`, `.+\d`. Catastrophic on long non-matching input.
+5. **Lookarounds wrapping quantified groups**, `(?=(a+)+b)`. Often missed because lookaround "doesn't consume" but still backtracks.
 
 ## Evil-input synthesis
 
-For each detected vulnerable structure, the tool generates a minimal demonstration string and runs the regex against it on a controlled-size input (default 10–30 chars; user-adjustable up to a safe cap). Reports the elapsed wall time. Catastrophic patterns will hit the cap and be killed by the detector before the page hangs.
+For each detected vulnerable structure, the tool generates a minimal demonstration string and runs the regex against it on a controlled-size input (default 10, 30 chars; user-adjustable up to a safe cap). Reports the elapsed wall time. Catastrophic patterns will hit the cap and be killed by the detector before the page hangs.
 
 ## Benchmarking
 
@@ -34,7 +36,7 @@ Optional manual test input field with a stopwatch. Useful for side-by-side compa
 
 ## What this is NOT
 
-Not a static-analysis equivalent of `recheck` or `safe-regex`. It implements a small set of detectors that catch the most common production ReDoS bugs; sophisticated patterns may slip past. It also runs in the JavaScript regex engine, which has different backtracking behavior from PCRE, RE2, .NET, or Python's `re` — a pattern that's safe in JS may still be dangerous in Java. Use it as a first pass on patterns shipped to JavaScript runtimes (browsers, Node, edge workers).
+Not a static-analysis equivalent of `recheck` or `safe-regex`. It implements a small set of detectors that catch the most common production ReDoS bugs; sophisticated patterns may slip past. It also runs in the JavaScript regex engine, which has different backtracking behavior from PCRE, RE2, .NET, or Python's `re`, a pattern that's safe in JS may still be dangerous in Java. Use it as a first pass on patterns shipped to JavaScript runtimes (browsers, Node, edge workers).
 
 ## Privacy
 
