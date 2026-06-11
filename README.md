@@ -18,7 +18,7 @@ Five detectors, applied to the parsed pattern:
 
 ## Evil-input synthesis
 
-For each detected vulnerable structure, the tool generates a minimal demonstration string and runs the regex against it on a controlled-size input (default 10, 30 chars; user-adjustable up to a safe cap). Reports the elapsed wall time. Catastrophic patterns will hit the cap and be killed by the detector before the page hangs.
+For each detected vulnerable structure, the tool generates a minimal demonstration string and runs the regex against it on a controlled-size input (default 10 to 30 chars; user-adjustable up to a safe cap). Reports the elapsed wall time. Catastrophic patterns will hit the cap and be killed by the detector before the page hangs.
 
 ## Benchmarking
 
