@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Regex ReDoS Checker</title>
+<meta name="description" content="Browser-based ReDoS checker. Detects catastrophic-backtracking patterns and synthesizes evil inputs to demonstrate the worst case.">
+<meta property="og:title" content="Regex ReDoS Checker">
+<meta property="og:description" content="Browser-based ReDoS checker. Detects catastrophic-backtracking patterns and synthesizes evil inputs to demonstrate the worst case.">
+<meta property="og:url" content="https://0xelitesystem.github.io/regex-redos-checker/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
 <style>
 :root {
   --bg: #ffffff;
@@ -165,7 +171,7 @@ footer { max-width: 1300px; margin: 32px auto 0; text-align: center; font-size: 
 <footer>
   Static + dynamic analysis. Pattern parsing is heuristic; complex constructs may not be fully analyzed. Always validate with engine-specific testing.
   <br>This tool runs entirely in the browser. No regex or input data is transmitted anywhere.
-</footer>
+ <br>An <a href="https://elitesystem.ai" target="_blank" rel="noopener">elitesystem.ai</a> tool. <a href="https://github.com/0xelitesystem/regex-redos-checker" target="_blank" rel="noopener">Source on GitHub</a>. <a href="https://0xelitesystem.github.io/" target="_blank" rel="noopener">More tools</a>. </footer>
 <script>
 (function() {
   const $ = id => document.getElementById(id);
@@ -631,6 +637,45 @@ footer { max-width: 1300px; margin: 32px auto 0; text-align: center; font-size: 
   }
 
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+})();
+</script>
+<script>
+/* Remember the light or dark choice across visits. */
+(function () {
+  var KEY = "theme";
+  var btn = document.querySelector("#theme-toggle, #theme-btn, .theme-btn, .theme-toggle, [data-theme-toggle]");
+  function host() {
+    if (document.documentElement.hasAttribute("data-theme")) { return document.documentElement; }
+    if (document.body && document.body.hasAttribute("data-theme")) { return document.body; }
+    return document.documentElement;
+  }
+  function current() { return host().getAttribute("data-theme") || ""; }
+  function setter() {
+    if (typeof setTheme === "function") { return setTheme; }
+    if (typeof applyTheme === "function") { return applyTheme; }
+    return null;
+  }
+  function force(t) {
+    var fn = setter();
+    if (fn) { fn(t); return; }
+    host().setAttribute("data-theme", t);
+    var other = t === "dark" ? "Light" : "Dark";
+    var lbl = document.querySelector("#theme-label");
+    if (lbl && (lbl.textContent === "Dark" || lbl.textContent === "Light")) { lbl.textContent = other; }
+    else if (btn && (btn.textContent === "Dark" || btn.textContent === "Light")) { btn.textContent = other; }
+    if (btn && btn.hasAttribute("aria-pressed")) { btn.setAttribute("aria-pressed", String(t === "dark")); }
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  if ((saved === "dark" || saved === "light") && saved !== current()) { force(saved); }
+  if (btn) {
+    btn.addEventListener("click", function () {
+      setTimeout(function () {
+        var t = current();
+        try { if (t) { localStorage.setItem(KEY, t); } } catch (e) {}
+      }, 0);
+    });
+  }
 })();
 </script>
 </body>
