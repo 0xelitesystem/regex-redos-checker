@@ -228,9 +228,9 @@ footer { max-width: 1300px; margin: 32px auto 0; text-align: center; font-size: 
               detector: 'Nested quantifier',
               sev: 'crit',
               title: 'Catastrophic nested quantifier, exponential backtracking',
-              pattern: '(' + body + ')' + g.outerQuantifier + '  ←  inner ' + iq.atom + iq.quant,
+              pattern: '(' + body + ')' + g.outerQuantifier + '  <-  inner ' + iq.atom + iq.quant,
               detail: 'The group is repeated ' + describe(g.outerQuantifier) + ' and contains an atom (' + iq.atom + ') repeated ' + describe(iq.quant) + '. On a non-matching input, the regex engine tries every way to split the input between the two quantifiers, giving O(2^n) backtracking. Classic ReDoS.',
-              fix: 'Refactor so the same character cannot be matched two ways. Options: (1) atomic group (?>X+) (PCRE/Java/.NET, not JavaScript). (2) Possessive quantifier X++ (same support). (3) Use a single quantifier, (a+)+ → a+. (4) Use a regex engine without backtracking (RE2, Hyperscan, Rust regex). (5) For JS, switch to a non-regex parser, or use a state machine.',
+              fix: 'Refactor so the same character cannot be matched two ways. Options: (1) atomic group (?>X+) (PCRE/Java/.NET, not JavaScript). (2) Possessive quantifier X++ (same support). (3) Use a single quantifier, (a+)+ -> a+. (4) Use a regex engine without backtracking (RE2, Hyperscan, Rust regex). (5) For JS, switch to a non-regex parser, or use a state machine.',
               evil: synthEvil(pattern, 'nested')
             });
           }
@@ -264,7 +264,7 @@ footer { max-width: 1300px; margin: 32px auto 0; text-align: center; font-size: 
               title: 'Alternation with overlapping branches in repeated group',
               pattern: '(' + alts.join('|') + ')' + g.outerQuantifier,
               detail: 'Branch "' + a + '" is a prefix of (or overlaps with) branch "' + b + '". Inside a +/* repetition, the engine has multiple valid ways to split a matching string between branches. On a near-miss input, this explodes combinatorially.',
-              fix: 'Make alternatives mutually exclusive: anchor branches with lookahead, factor out the common prefix, or order them with the longer alternative first plus an atomic group. Example: (a|ab)+ → (ab|a)+ helps in PCRE-style first-match-wins engines but not in NFA, better is a(b?) which expresses the same language unambiguously.',
+              fix: 'Make alternatives mutually exclusive: anchor branches with lookahead, factor out the common prefix, or order them with the longer alternative first plus an atomic group. Example: (a|ab)+ -> (ab|a)+ helps in PCRE-style first-match-wins engines but not in NFA, better is a(b?) which expresses the same language unambiguously.',
               evil: synthEvil(pattern, 'altoverlap', a)
             });
             return; // one finding per group
@@ -322,7 +322,7 @@ footer { max-width: 1300px; margin: 32px auto 0; text-align: center; font-size: 
               title: 'Overlapping character classes in repeated alternation',
               pattern: '(' + alts[i] + '|' + alts[j] + ')' + g.outerQuantifier,
               detail: 'Class [' + ca + '] and [' + cb + '] share characters. In a repeated alternation, an input character can be matched by either branch, the engine explores both paths.',
-              fix: 'Merge the classes: ([abc]|[bcd])+ → [abcd]+. If branches need different following patterns, factor those out.',
+              fix: 'Merge the classes: ([abc]|[bcd])+ -> [abcd]+. If branches need different following patterns, factor those out.',
               evil: synthEvil(pattern, 'classoverlap')
             });
             return;
