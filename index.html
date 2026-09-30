@@ -77,6 +77,9 @@ button:hover { border-color: var(--crimson); color: var(--crimson); }
 button.primary { background: var(--crimson); color: #ffffff; border-color: var(--crimson); font-weight: 700; }
 button.primary:hover { background: var(--crimson-dim); border-color: var(--crimson-dim); color: #ffffff; }
 [data-theme="dark"] button.primary:hover { background: var(--crimson-dim); color: #ffffff; }
+/* Dark theme: the white label needs 4.5:1, so the primary fill uses the deeper red (WCAG 1.4.3). */
+[data-theme="dark"] button.primary { background: var(--crimson-dim); border-color: var(--crimson-dim); }
+[data-theme="dark"] button.primary:hover { background: #b91c1c; border-color: #b91c1c; }
 .results { min-height: 380px; max-height: 700px; overflow-y: auto; }
 .results-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; font-style: italic; }
 .severity-stamp { display: inline-block; padding: 4px 12px; border: 2px solid; border-radius: 2px; font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
