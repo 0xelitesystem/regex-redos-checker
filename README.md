@@ -6,6 +6,17 @@ Browser-based checker for catastrophic backtracking and ReDoS-prone regex patter
 
 Single HTML file, pentest-report aesthetic (default light theme, dark toggle). No build step, no dependencies, no network calls.
 
+## Use
+
+1. Paste the regex body, without slashes, into the pattern field and tick any flags (i, g, m, s, u).
+2. Click "Analyze" to get findings per detector with a severity tag.
+3. Optionally paste a string into Test Input to time the pattern against it.
+4. Try the sample buttons (Nested quantifier, Alt overlap, Optional rep, Email validator, Safe pattern) to see each case.
+
+## Why this exists
+
+A single badly nested quantifier can hang a server on one crafted input, and that kind of pattern often passes code review. This is a single HTML file that flags the common ReDoS structures in your browser, with no tracking and no dependencies. MIT licensed.
+
 ## What it checks
 
 Five detectors, applied to the parsed pattern:
@@ -40,7 +51,20 @@ Not a static-analysis equivalent of `recheck` or `safe-regex`. It implements a s
 
 ## Privacy
 
-Patterns and test inputs stay in the browser. No analytics, no storage.
+Patterns and test inputs stay in the browser. No analytics, no storage. The one exception: your light or dark theme choice is saved in localStorage under the key `theme`.
+
+## Run locally
+
+```
+git clone https://github.com/0xelitesystem/regex-redos-checker
+cd regex-redos-checker
+```
+
+Open `index.html` in a browser, or serve the folder with `python -m http.server` and visit http://localhost:8000.
+
+## Build
+
+No build step. It is a single `index.html` file.
 
 ## Samples
 
